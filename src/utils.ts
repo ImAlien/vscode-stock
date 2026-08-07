@@ -136,7 +136,7 @@ export function fillString(source: string, length: number, left = true): string 
   while (stringWidth(source) >= length) {
     source = source.slice(0, source.length - 1);
   }
-  const addString = '  '.repeat(length - stringWidth(source));
+  const addString = ' '.repeat(length - stringWidth(source));
   if (left) {
     return source + addString;
   }

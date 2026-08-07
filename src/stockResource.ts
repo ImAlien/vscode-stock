@@ -50,7 +50,7 @@ export interface StockConfig{
 export class Stock extends TreeItem {
   info: StockInfo;
   constructor(info: StockInfo) {
-    super(`${+info.changeAmount >= 0 ? info.emoji[0]: info.emoji[1]} ${fillString(info.name, 10)} ${fillString(info.changeRate + '%', 8, false)} ${fillString(info.now, 10, false)}`);
+    super(`${fillString(info.name, 9)} ${fillString(info.now, 8, false)} ${fillString(info.changeAmount, 8, false)} ${fillString(info.changeRate + '%', 7, false)}`);
     this.info = info;
     this.tooltip = `
  公司:       ${info.name}
