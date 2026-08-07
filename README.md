@@ -1,7 +1,15 @@
 # super-stock：vscode股票插件
 
 
-> GitHub地址: [https://github.com/yujintang/vscode-stock](https://github.com/yujintang/vscode-stock)
+> 本仓库地址: [https://github.com/ImAlien/vscode-stock](https://github.com/ImAlien/vscode-stock)
+>
+> Fork 自原作者 **yujintang**: [https://github.com/yujintang/vscode-stock](https://github.com/yujintang/vscode-stock)
+
+> 感谢原作者 [@yujintang](https://github.com/yujintang) 的开源。本仓库基于其 MIT 许可协议 fork 并做了如下修复：
+>
+> - 修复新浪行情接口防盗链（补 `Referer` 头，解决接口 403 导致行情无法刷新）
+> - 修复「添加」按钮失败时无任何提示的问题，并对纯 6 位数字自动补全 `sh`/`sz` 前缀
+> - 修复网络请求错误处理导致的崩溃
 
 
 

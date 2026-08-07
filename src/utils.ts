@@ -1,4 +1,5 @@
 import * as https from 'https';
+import { IncomingMessage } from 'http';
 import { workspace } from 'vscode';
 import * as iconv from 'iconv-lite';
 import * as stringWidth from 'string-width';
@@ -9,23 +10,23 @@ import { Stock, StockConfig } from './stockResource';
 const httpRequest = async (url: string): Promise<any> => {
   return new Promise((resolve, reject) => {
     
-    https.get(url, res => {
+    https.get(url, { headers: { 'Referer': 'https://finance.sina.com.cn' } }, (res: IncomingMessage) => {
       let chunks: Array<Buffer> = [];
       res.on('data', chunk => chunks.push(chunk));
       res.on('end', () => {
         // Sometimes the 'error' event is not fired. Double check here.
         if (res.statusCode === 200) {
-          let buff = Buffer.concat(chunks);
+          let buff = Buffer.concat(chunks as any);
           const contentType: String = res.headers['content-type'] || '';
           const matchCharset = contentType.match(/(?:charset=)(\w+)/) || [];
           // 转编码，保持跟响应一致
           let body = iconv.decode(buff, matchCharset[1] || 'utf8');
           resolve(body);
         } else {
-          reject('网络请求错误!');
+          reject(new Error(`网络请求错误! (HTTP ${res.statusCode})`));
         }
       });
-    });
+    }).on('error', err => reject(err));
   });
 };
 
@@ -37,7 +38,12 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
   const url = 'https://hq.sinajs.cn/list=' + Object.keys(stockConfig).join(',');
 
   return new Promise(async (resolve, reject) => {
-    const body = await httpRequest(url).catch(e => { reject(e.message); });
+    let body: any;
+    try {
+      body = await httpRequest(url);
+    } catch (e) {
+      return reject(e instanceof Error ? e.message : String(e));
+    }
     if (/FAILED/.test(body)) {
       return reject(`fail: error Stock code in ${Object.keys(stockConfig)}, please delete error Stock code`);
     }

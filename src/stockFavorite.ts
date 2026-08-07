@@ -90,16 +90,33 @@ export class StockProvider implements TreeDataProvider<Stock>{
             default:
               break;
           }
+          // 纯 6 位数字自动补全 A 股市场前缀: 6/9 开头为沪市, 其余为深市
+          if (/^\d{6}$/.test(tempStock)) {
+            tempStock = /^[69]/.test(tempStock) ? `sh${tempStock}` : `sz${tempStock}`;
+          }
           newStock[`${tempStock}`] =  ['-', '-'];
         }
       }
-      const result = await sinaApi(newStock);
+      if (Object.keys(newStock).length === 0) {
+        return;
+      }
+      let result;
+      try {
+        result = await sinaApi(newStock);
+      } catch (e) {
+        window.showErrorMessage(`添加失败: ${e instanceof Error ? e.message : e}。请检查股票代码格式, 例如 sh600000 / sz000001 / aapl.us / hk00700`);
+        return;
+      }
       const insertStockObj: { [key: string]: any[] }= {};
       result.forEach(stockInfo=>{
         if (stockInfo) {
           insertStockObj[`${stockInfo.info.code}`] = ['-', '-'];
         }
       });
+      if (Object.keys(insertStockObj).length === 0) {
+        window.showWarningMessage(`未识别到有效股票代码: ${Object.keys(newStock).join(', ')}。请检查格式, 例如 sh600000 / sz000001 / aapl.us / hk00700`);
+        return;
+      }
       this.resource.updateConfig(insertStockObj);
       this._onDidChangeTreeData.fire();
     }
