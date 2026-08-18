@@ -52,6 +52,8 @@ export class Stock extends TreeItem {
   constructor(info: StockInfo) {
     super(`${fillString(info.name, 9)} ${fillString(info.now, 8, false)} ${fillString(info.changeAmount, 8, false)} ${fillString(info.changeRate + '%', 7, false)}`);
     this.info = info;
+    // 稳定 id: 刷新时复用节点, 减少重建并保持选中态
+    this.id = info.code;
     this.tooltip = `
  公司:       ${info.name}
  代码:       ${info.code}

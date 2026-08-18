@@ -23,6 +23,8 @@
     "onView:super-stock-favorite",
     "onCommand:super-stock-favorite.order",
     "onCommand:super-stock-favorite.add",
+    "onCommand:super-stock-favorite.pause",
+    "onCommand:super-stock-favorite.resume",
     "onCommand:super-stock-favorite.item.setHighWarn",
     "onCommand:super-stock-favorite.item.setLowWarn",
     "onCommand:super-stock-favorite.item.remove",
@@ -86,6 +88,16 @@
         }
       },
       {
+        "command": "super-stock-favorite.pause",
+        "title": "暂停自动刷新",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "super-stock-favorite.resume",
+        "title": "恢复自动刷新",
+        "icon": "$(debug-start)"
+      },
+      {
         "command": "super-stock-favorite.item.setHighWarn",
         "title": "设置高报警价"
       },
@@ -100,6 +112,16 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "super-stock-favorite.pause",
+          "when": "view == super-stock-favorite && !super-stock.paused",
+          "group": "navigation"
+        },
+        {
+          "command": "super-stock-favorite.resume",
+          "when": "view == super-stock-favorite && super-stock.paused",
+          "group": "navigation"
+        },
         {
           "command": "super-stock-favorite.order",
           "when": "view == super-stock-favorite",
