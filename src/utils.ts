@@ -62,15 +62,15 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
           resultStock = {
             name: params[0],
             code,
-            lowWarn: NumberCn(StockConfig[0], 2, false),
-            highWarn: NumberCn(StockConfig[1], 2, false),
-            open: NumberCn(params[1], 2, false),
-            lastClose: NumberCn(params[2], 2, false),
-            highStop: NumberCn(params[2]* 1.1, 2, false),
-            lowStop: NumberCn(params[2]* 0.9, 2, false),
-            now: NumberCn(params[3], 2, false),
-            high: NumberCn(params[4], 2, false),
-            low: NumberCn(params[5], 2, false),
+            lowWarn: formatPrice(StockConfig[0]),
+            highWarn: formatPrice(StockConfig[1]),
+            open: formatPrice(params[1]),
+            lastClose: formatPrice(params[2]),
+            highStop: formatPrice(params[2]* 1.1),
+            lowStop: formatPrice(params[2]* 0.9),
+            now: formatPrice(params[3]),
+            high: formatPrice(params[4]),
+            low: formatPrice(params[5]),
             volume: NumberCn(params[8], 2),
             amount: NumberCn(params[9], 2),
             changeAmount:'0',
@@ -81,13 +81,13 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
           resultStock = {
             name: params[1],
             code,
-            lowWarn: NumberCn(StockConfig[0], 2, false),
-            highWarn: NumberCn(StockConfig[1], 2, false),
-            open: NumberCn(params[2], 2, false),
-            lastClose: NumberCn(params[3], 2, false),
-            now: NumberCn(params[6], 2, false),
-            high: NumberCn(params[4], 2, false),
-            low: NumberCn(params[5], 2, false),
+            lowWarn: formatPrice(StockConfig[0]),
+            highWarn: formatPrice(StockConfig[1]),
+            open: formatPrice(params[2]),
+            lastClose: formatPrice(params[3]),
+            now: formatPrice(params[6]),
+            high: formatPrice(params[4]),
+            low: formatPrice(params[5]),
             volume: NumberCn(params[12], 2),
             amount: NumberCn(params[11], 2),
             changeAmount:'0',
@@ -98,13 +98,13 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
           resultStock = {
             name: params[0],
             code,
-            lowWarn: NumberCn(StockConfig[0], 2, false),
-            highWarn: NumberCn(StockConfig[1], 2, false),
-            open: NumberCn(params[5], 2, false),
-            lastClose: NumberCn(params[26], 2, false),
-            now: NumberCn(params[1], 2, false),
-            high: NumberCn(params[6], 2, false),
-            low: NumberCn(params[7], 2, false),
+            lowWarn: formatPrice(StockConfig[0]),
+            highWarn: formatPrice(StockConfig[1]),
+            open: formatPrice(params[5]),
+            lastClose: formatPrice(params[26]),
+            now: formatPrice(params[1]),
+            high: formatPrice(params[6]),
+            low: formatPrice(params[7]),
             volume: NumberCn(params[10], 2),
             changeAmount:'0',
             changeRate: '0',
@@ -113,7 +113,7 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
         }
         if (resultStock !== undefined) {
           const { lastClose, now, high, low } = resultStock;
-          resultStock.changeAmount = ((+now - +lastClose) >= 0 ? '+' : '-') + NumberCn(Math.abs(+now - +lastClose), 2, false),
+          resultStock.changeAmount = ((+now - +lastClose) >= 0 ? '+' : '-') + formatPrice(Math.abs(+now - +lastClose), now),
           resultStock.changeRate = ((+now - +lastClose) >= 0 ? '+' : '-') + NumberCn((Math.abs(+now - +lastClose)) / +lastClose * 100, 2, false),
           resultStock.highRate = ((+high - +lastClose) >= 0 ? '+' : '-') + NumberCn((Math.abs(+high - +lastClose)) / +lastClose * 100, 2, false),
           resultStock.lowRate = ((+low - +lastClose) >= 0 ? '+' : '-') + NumberCn((Math.abs(+low - +lastClose)) / +lastClose * 100, 2, false),
@@ -133,7 +133,7 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
  * @param left 原字符串是否靠左边
  */
 export function fillString(source: string, length: number, left = true): string {
-  while (stringWidth(source) >= length) {
+  while (stringWidth(source) > length) {
     source = source.slice(0, source.length - 1);
   }
   const addString = ' '.repeat(length - stringWidth(source));
@@ -162,6 +162,27 @@ export interface StockInfo {
   highRate?: string;
   lowRate?: string;
   emoji: string[];
+}
+
+/**
+ * 价格格式化: 按数量级自适应小数位, 保证至少三位有效数字, 并保留末尾的 0
+ * |num| >= 10 -> 2 位小数; >= 1 -> 3 位小数; < 1 -> 4 位小数
+ * @param inputNumber 待格式化的数值
+ * @param refNumber 决定小数位的参照值(默认取自身)。涨跌额传入现价, 使其小数位与价格一致
+ * 非数字(如未设置的报警价 '-')返回 'NaN', 保持调用方 isNaN 判断不变
+ */
+export function formatPrice(inputNumber: any, refNumber?: any): string {
+  const num = +inputNumber;
+  if (isNaN(num)) { return 'NaN'; }
+  const ref = refNumber === undefined ? num : +refNumber;
+  const abs = Math.abs(isNaN(ref) ? num : ref);
+  let digits = 4;
+  if (abs >= 10) {
+    digits = 2;
+  } else if (abs >= 1) {
+    digits = 3;
+  }
+  return num.toFixed(digits);
 }
 
 export function NumberCn(inputNumber: number = 0, fixNumber: number = 2, format = true): string {
