@@ -23,8 +23,16 @@
 **今年股市这么刺激，咱不能只顾着码代码啊，顺便瞅一眼行情，下面我介绍一款vscode股票插件，来方便我们盯盘。**
 
 
-### 1. vscode插件商店，找到super-stock，进行安装。
-![image.png](https://cdn.nlark.com/yuque/0/2020/png/109900/1593330719892-178d12f5-9799-44a8-86d8-c8a7eb6fda40.png#align=left&display=inline&height=98&margin=%5Bobject%20Object%5D&name=image.png&originHeight=195&originWidth=479&size=18449&status=done&style=none&width=239.5)
+### 1. 下载最新 release，并通过 vscode 安装
+
+> 本 fork 未发布到 vscode 插件商店，请下载 release 中的 `.vsix` 离线安装。
+
+1. 前往 [Releases 页面](https://github.com/ImAlien/vscode-stock/releases)，下载最新版本的 `super-stock-x.y.z.vsix` 文件。
+2. 打开 vscode，进入扩展面板（`Ctrl+Shift+X`）。
+3. 点击右上角的 `...`（更多操作）→ 选择 **Install from VSIX...**（从 VSIX 安装）。
+4. 选择刚下载的 `.vsix` 文件，等待安装完成后按提示重载 vscode 即可。
+
+> 也可以在命令面板（`Ctrl+Shift+P`）执行 `Extensions: Install from VSIX...`，或使用命令行：`code --install-extension super-stock-x.y.z.vsix`
 
 ### 2. vscode 左侧会自动添加`FAVORITE STOCKS`一栏，用于展示所选股票
 ![image.png](https://cdn.nlark.com/yuque/0/2020/png/109900/1593330878423-f425d0f9-627e-4663-a48f-1500549c9abc.png#align=left&display=inline&height=116&margin=%5Bobject%20Object%5D&name=image.png&originHeight=232&originWidth=788&size=27429&status=done&style=none&width=394)
