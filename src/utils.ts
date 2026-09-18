@@ -126,6 +126,61 @@ export function sinaApi(stockConfig: StockConfig): Promise<Array<Stock>> {
 }
 
 
+export interface StockSuggest {
+  name: string;   // 中文名称
+  code: string;   // 行情接口可用的代码, 如 sh600519 / hk00700 / gb_aapl
+  market: string; // 市场标签: A股 / 港股 / 美股
+}
+
+/**
+ * 通过新浪 suggest 接口按 名称/拼音/拼音首字母/代码 搜索股票
+ * 仅返回本插件行情接口支持的 沪深A股 / 港股 / 美股
+ * @param keyword 关键词, 支持中文名、拼音、拼音首字母、代码、带市场前缀的代码
+ */
+export async function searchStock(keyword: string): Promise<Array<StockSuggest>> {
+  const key = keyword.trim();
+  if (!key) { return []; }
+  const url = 'https://suggest3.sinajs.cn/suggest/type=&key=' + encodeURIComponent(key);
+  let body: string;
+  try {
+    body = await httpRequest(url);
+  } catch (e) {
+    return [];
+  }
+  const match = body.match(/"([^"]*)"/);
+  if (!match || !match[1]) { return []; }
+  const results: Array<StockSuggest> = [];
+  const seen: { [code: string]: boolean } = {};
+  for (const item of match[1].split(';')) {
+    const fields = item.split(',');
+    if (fields.length < 5) { continue; }
+    // fields[1]=类别 fields[2]=代码 fields[3]=带前缀代码 fields[4]=中文名
+    const type = fields[1];
+    const rawCode = fields[2];
+    const symbol = fields[3];
+    const name = fields[4] || fields[0];
+    if (!rawCode || !name) { continue; }
+    let code = '';
+    let market = '';
+    if (type === '11') {
+      code = symbol;          // 已带 sh/sz 前缀
+      market = 'A股';
+    } else if (type === '31') {
+      code = `hk${rawCode}`;  // 港股需补 hk 前缀
+      market = '港股';
+    } else if (type === '41') {
+      code = `gb_${rawCode}`; // 美股需补 gb_ 前缀
+      market = '美股';
+    } else {
+      continue;               // 基金/期货/暗盘等行情接口暂不支持, 直接跳过
+    }
+    if (seen[code]) { continue; }
+    seen[code] = true;
+    results.push({ name, code, market });
+  }
+  return results;
+}
+
 /**
  * 字符串长度拼接
  * @param source 原字符串长度

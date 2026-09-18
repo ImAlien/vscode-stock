@@ -1,6 +1,11 @@
-import {window, EventEmitter, Event, TreeDataProvider, TreeItem } from 'vscode';
+import {window, EventEmitter, Event, TreeDataProvider, TreeItem, QuickPickItem } from 'vscode';
 import { StockResource, Stock } from './stockResource';
-import { sinaApi, StockInfo } from './utils';
+import { sinaApi, searchStock, StockInfo } from './utils';
+
+// 搜索结果候选项, 额外携带行情接口可用的 code
+interface StockPickItem extends QuickPickItem {
+  code: string;
+}
 
 export class StockProvider implements TreeDataProvider<Stock>{
 
@@ -45,81 +50,73 @@ export class StockProvider implements TreeDataProvider<Stock>{
   }
 
   async addFavorite(){
-    const res =await window.showInputBox({
-      value: '',
-      prompt: `添加股票到自选, 使用【,】添加多个！`,
-      placeHolder: 'Add Stock To Favorite',
+    const quickPick = window.createQuickPick<StockPickItem>();
+    quickPick.title = '搜索并添加股票';
+    quickPick.placeholder = '输入 名称/拼音/代码 搜索 (如: 茅台 / maotai / gzmt / 600519), 回车添加, Esc 完成';
+    quickPick.matchOnDescription = true;
+    let addedCount = 0;
+    let timer: any;
+    let seq = 0; // 请求序号, 丢弃过期的异步结果, 避免快速输入时结果错位
+
+    quickPick.onDidChangeValue(value => {
+      if (timer) { clearTimeout(timer); }
+      const keyword = value.trim();
+      if (!keyword) {
+        quickPick.items = [];
+        quickPick.busy = false;
+        return;
+      }
+      quickPick.busy = true;
+      const current = ++seq;
+      // 简单防抖, 减少输入过程中的请求次数
+      timer = setTimeout(async () => {
+        const list = await searchStock(keyword);
+        if (current !== seq) { return; } // 已有更新的输入, 丢弃本次结果
+        quickPick.items = list.map(s => ({
+          label: s.name,
+          description: `${s.market}  ${s.code}`,
+          code: s.code,
+        }));
+        quickPick.busy = false;
+      }, 300);
     });
 
-    if (res !== undefined) {
-      const codeArray = res.split(/[,|，]/);
-      const newStock:{[key:string]: Array<string>} = {};
-      for(const stock of codeArray){
-        if(stock !== ''){
-          let tempStock = stock.trim().toLowerCase();
-          const split = tempStock.split('.');
-          switch(split[1]){
-            case 'us':
-              tempStock = `gb_${split[0]}`;
-              break;
-            case 'sh':
-              tempStock = `sh${split[0]}`;
-              break;
-            case 'sz':
-                tempStock = `sz${split[0]}`;
-                break;
-            case 'hk':
-                  tempStock = `hk${split[0]}`;
-                  break;
-            default:
-              break;
-          }
-          switch(split[0]){
-            case 'us':
-              tempStock = `gb_${split[1]}`;
-              break;
-            case 'sh':
-              tempStock = `sh${split[1]}`;
-              break;
-            case 'sz':
-                tempStock = `sz${split[1]}`;
-                break;
-            case 'hk':
-                  tempStock = `hk${split[1]}`;
-                  break;
-            default:
-              break;
-          }
-          // 纯 6 位数字自动补全 A 股市场前缀: 6/9 开头为沪市, 其余为深市
-          if (/^\d{6}$/.test(tempStock)) {
-            tempStock = /^[69]/.test(tempStock) ? `sh${tempStock}` : `sz${tempStock}`;
-          }
-          newStock[`${tempStock}`] =  ['-', '-'];
-        }
-      }
-      if (Object.keys(newStock).length === 0) {
-        return;
-      }
+    quickPick.onDidAccept(async () => {
+      const pick = quickPick.selectedItems[0];
+      if (!pick) { return; }
+      quickPick.busy = true;
       let result;
       try {
-        result = await sinaApi(newStock);
+        result = await sinaApi({ [pick.code]: ['-', '-'] });
       } catch (e) {
-        window.showErrorMessage(`添加失败: ${e instanceof Error ? e.message : e}。请检查股票代码格式, 例如 sh600000 / sz000001 / aapl.us / hk00700`);
+        window.showErrorMessage(`添加失败: ${e instanceof Error ? e.message : e}`);
+        quickPick.busy = false;
         return;
       }
-      const insertStockObj: { [key: string]: any[] }= {};
-      result.forEach(stockInfo=>{
+      const insertStockObj: { [key: string]: any[] } = {};
+      result.forEach(stockInfo => {
         if (stockInfo) {
           insertStockObj[`${stockInfo.info.code}`] = ['-', '-'];
         }
       });
       if (Object.keys(insertStockObj).length === 0) {
-        window.showWarningMessage(`未识别到有效股票代码: ${Object.keys(newStock).join(', ')}。请检查格式, 例如 sh600000 / sz000001 / aapl.us / hk00700`);
+        window.showWarningMessage(`未获取到行情: ${pick.label} (${pick.code})`);
+        quickPick.busy = false;
         return;
       }
       this.resource.updateConfig(insertStockObj);
       this._onDidChangeTreeData.fire();
-    }
+      addedCount++;
+      quickPick.title = `搜索并添加股票 (已添加 ${addedCount} 支)`;
+      window.setStatusBarMessage(`已添加: ${pick.label} (${pick.code})`, 2000);
+      // 保持面板常驻, 清空输入便于继续搜索添加下一支
+      quickPick.value = '';
+      quickPick.items = [];
+      quickPick.busy = false;
+    });
+
+    quickPick.onDidHide(() => quickPick.dispose());
+    quickPick.show();
   }
 
   async setHighWarn(stock: {info: StockInfo}){
