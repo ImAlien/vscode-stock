@@ -57,6 +57,11 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand('super-stock-favorite.item.moveUp', (stock)=>{nodeFavoriteStockProvider.move(stock, 'up');}),
     commands.registerCommand('super-stock-favorite.item.moveDown', (stock)=>{nodeFavoriteStockProvider.move(stock, 'down');}),
     commands.registerCommand('super-stock-favorite.item.moveBottom', (stock)=>{nodeFavoriteStockProvider.move(stock, 'bottom');}),
+    commands.registerCommand('super-stock-favorite.createCategory', ()=>{nodeFavoriteStockProvider.createCategory();}),
+    commands.registerCommand('super-stock-favorite.category.delete', (category)=>{nodeFavoriteStockProvider.deleteCategory(category);}),
+    commands.registerCommand('super-stock-favorite.category.rename', (category)=>{nodeFavoriteStockProvider.renameCategory(category);}),
+    commands.registerCommand('super-stock-favorite.item.addToCategory', (stock)=>{nodeFavoriteStockProvider.addToCategory(stock);}),
+    commands.registerCommand('super-stock-favorite.item.removeFromCategory', (stock)=>{nodeFavoriteStockProvider.removeFromCategory(stock);}),
   ); // subscriptions
 }
 

@@ -1,5 +1,15 @@
-import { workspace, TreeItem } from 'vscode';
+import { workspace, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { sinaApi, fillString, StockInfo } from './utils';
+
+export type CategoryKind = 'all' | 'market' | 'custom';
+
+/** 根据代码前缀判断所属市场分类 */
+export function marketOf(code: string): 'A股' | '港股' | '美股' | '' {
+  if (/^(sh|sz)/.test(code)) { return 'A股'; }
+  if (/^hk/.test(code)) { return '港股'; }
+  if (/^gb_/.test(code)) { return '美股'; }
+  return '';
+}
 
 export class StockResource {
   constructor() {
@@ -29,6 +39,14 @@ export class StockResource {
     const favoriteConfig:StockConfig = Object.assign({}, config.get('super-stock.favorite', {}));
     delete favoriteConfig[`${stockCode}`];
     config.update('super-stock.favorite', favoriteConfig, true);
+    // 清理该股在自定义分类与顺序中的引用
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    Object.keys(categories).forEach(name => {
+      categories[name] = (categories[name] || []).filter(c => c !== stockCode);
+    });
+    config.update('super-stock.categories', categories, true);
+    const order = (config.get('super-stock.order', []) as string[]).filter(c => c !== stockCode);
+    config.update('super-stock.order', order, true);
   }
 
   /**
@@ -58,7 +76,7 @@ export class StockResource {
     return config.update('super-stock.order', order, true);
   }
 
-  async getFavorites(sortMode: number): Promise<Array<Stock>> {
+  async getAllStocks(sortMode: number): Promise<Array<Stock>> {
     const configuration = workspace.getConfiguration();
     const favorite = configuration.get('super-stock.favorite', {});
     const result = await sinaApi(favorite);
@@ -78,6 +96,94 @@ export class StockResource {
     }
     return result;
   }
+
+  /** 构建分类节点列表(纯配置, 无需网络): 全部 + 非空市场分类 + 自定义分类 */
+  buildCategories(): Category[] {
+    const config = workspace.getConfiguration();
+    const codes = Object.keys(config.get('super-stock.favorite', {}));
+    const custom = config.get('super-stock.categories', {}) as {[k: string]: string[]};
+    const cats: Category[] = [ new Category('全部', 'all', codes.length) ];
+    (['A股', '港股', '美股'] as const).forEach(m => {
+      const n = codes.filter(c => marketOf(c) === m).length;
+      if (n > 0) { cats.push(new Category(m, 'market', n)); }
+    });
+    Object.keys(custom).forEach(name => {
+      const n = codes.filter(c => (custom[name] || []).indexOf(c) !== -1).length;
+      cats.push(new Category(name, 'custom', n));
+    });
+    return cats;
+  }
+
+  /** 按分类过滤股票, 为每个分类生成独立 id 的新 Stock 实例(避免多父节点 id 冲突) */
+  filterByCategory(all: Stock[], category: Category): Stock[] {
+    const custom = workspace.getConfiguration().get('super-stock.categories', {}) as {[k: string]: string[]};
+    return all
+      .filter(s => {
+        const code = s.info.code;
+        if (category.kind === 'all') { return true; }
+        if (category.kind === 'market') { return marketOf(code) === category.name; }
+        return (custom[category.name] || []).indexOf(code) !== -1;
+      })
+      .map(s => {
+        const item = new Stock(s.info);
+        item.id = `${category.name}::${s.info.code}`;      // 唯一 id
+        item.contextValue = category.kind === 'custom' ? 'stockInCategory' : 'stock';
+        item.categoryName = category.name;                 // 供“移出分类”使用
+        item.isPrimary = category.kind === 'all';          // 仅“全部”触发报警弹窗, 避免重复
+        return item;
+      });
+  }
+
+  /** 获取所有自定义分类名称 */
+  getCustomCategoryNames(): string[] {
+    const custom = workspace.getConfiguration().get('super-stock.categories', {}) as {[k: string]: string[]};
+    return Object.keys(custom);
+  }
+
+  /** 新建自定义分类(已存在则保留) */
+  createCategory(name: string) {
+    const config = workspace.getConfiguration();
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    if (!categories[name]) { categories[name] = []; }
+    return config.update('super-stock.categories', categories, true);
+  }
+
+  /** 删除自定义分类(不影响自选股本身) */
+  deleteCategory(name: string) {
+    const config = workspace.getConfiguration();
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    delete categories[name];
+    return config.update('super-stock.categories', categories, true);
+  }
+
+  /** 重命名自定义分类 */
+  renameCategory(oldName: string, newName: string) {
+    const config = workspace.getConfiguration();
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    if (!categories[oldName] || categories[newName]) { return Promise.resolve(); }
+    categories[newName] = categories[oldName];
+    delete categories[oldName];
+    return config.update('super-stock.categories', categories, true);
+  }
+
+  /** 将若干股票加入分类(并集, 自动建分类) */
+  addToCategory(name: string, codes: string[]) {
+    const config = workspace.getConfiguration();
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    const set = (categories[name] || []).slice();
+    codes.forEach(c => { if (set.indexOf(c) === -1) { set.push(c); } });
+    categories[name] = set;
+    return config.update('super-stock.categories', categories, true);
+  }
+
+  /** 将股票从分类中移出 */
+  removeFromCategory(name: string, code: string) {
+    const config = workspace.getConfiguration();
+    const categories = Object.assign({}, config.get('super-stock.categories', {})) as {[k: string]: string[]};
+    if (!categories[name]) { return Promise.resolve(); }
+    categories[name] = categories[name].filter(c => c !== code);
+    return config.update('super-stock.categories', categories, true);
+  }
 }
 
 export interface StockConfig{
@@ -86,6 +192,8 @@ export interface StockConfig{
 
 export class Stock extends TreeItem {
   info: StockInfo;
+  categoryName?: string;  // 当前所属分类名(供“移出分类”使用)
+  isPrimary?: boolean;    // 是否处于“全部”分类(仅此处触发报警弹窗, 避免重复)
   constructor(info: StockInfo) {
     super(`${fillString(info.name, 9)} ${fillString(info.now, 8, false)} ${fillString(info.changeAmount, 8, false)} ${fillString(info.changeRate + '%', 7, false)}`);
     this.info = info;
@@ -108,6 +216,18 @@ export class Stock extends TreeItem {
  低价警报:  ${!isNaN(+info.lowWarn)?info.lowWarn :'-'}
  高价警报:  ${!isNaN(+info.highWarn)?info.highWarn :'-'}
     `;
+  }
+}
+
+export class Category extends TreeItem {
+  constructor(public name: string, public kind: CategoryKind, count: number) {
+    super(
+      `${name} (${count})`,
+      name === '全部' ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed
+    );
+    this.id = `cat::${name}`;
+    this.contextValue = kind === 'custom' ? 'categoryCustom'
+                      : kind === 'market' ? 'categoryBuiltin' : 'categoryAll';
   }
 }
 

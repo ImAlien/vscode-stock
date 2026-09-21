@@ -32,6 +32,11 @@
     "onCommand:super-stock-favorite.item.moveUp",
     "onCommand:super-stock-favorite.item.moveDown",
     "onCommand:super-stock-favorite.item.moveBottom",
+    "onCommand:super-stock-favorite.createCategory",
+    "onCommand:super-stock-favorite.category.delete",
+    "onCommand:super-stock-favorite.category.rename",
+    "onCommand:super-stock-favorite.item.addToCategory",
+    "onCommand:super-stock-favorite.item.removeFromCategory",
     "onView:super-stock-favorite"
   ],
   "main": "./out/extension.js",
@@ -68,6 +73,11 @@
           "type": "array",
           "default": [],
           "description": "custom display order of favorite symbols (array of symbol codes), managed by the move-top/bottom/up/down actions"
+        },
+        "super-stock.categories": {
+          "type": "object",
+          "default": {},
+          "description": "custom categories, key is category name, value is array of symbol codes"
         }
       }
     },
@@ -133,6 +143,27 @@
       {
         "command": "super-stock-favorite.item.moveBottom",
         "title": "置底"
+      },
+      {
+        "command": "super-stock-favorite.createCategory",
+        "title": "新建分类",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "super-stock-favorite.category.delete",
+        "title": "删除分类"
+      },
+      {
+        "command": "super-stock-favorite.category.rename",
+        "title": "重命名分类"
+      },
+      {
+        "command": "super-stock-favorite.item.addToCategory",
+        "title": "加入分类"
+      },
+      {
+        "command": "super-stock-favorite.item.removeFromCategory",
+        "title": "移出分类"
       }
     ],
     "menus": {
@@ -156,40 +187,65 @@
           "command": "super-stock-favorite.add",
           "when": "view == super-stock-favorite",
           "group": "navigation"
+        },
+        {
+          "command": "super-stock-favorite.createCategory",
+          "when": "view == super-stock-favorite",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "super-stock-favorite.item.setHighWarn",
-          "when": "view == super-stock-favorite"
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/"
         },
         {
           "command": "super-stock-favorite.item.setLowWarn",
-          "when": "view == super-stock-favorite"
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/"
         },
         {
           "command": "super-stock-favorite.item.remove",
-          "when": "view == super-stock-favorite"
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/"
+        },
+        {
+          "command": "super-stock-favorite.item.addToCategory",
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/",
+          "group": "2_category@1"
+        },
+        {
+          "command": "super-stock-favorite.item.removeFromCategory",
+          "when": "view == super-stock-favorite && viewItem == stockInCategory",
+          "group": "2_category@2"
         },
         {
           "command": "super-stock-favorite.item.moveTop",
-          "when": "view == super-stock-favorite",
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/",
           "group": "1_move@1"
         },
         {
           "command": "super-stock-favorite.item.moveUp",
-          "when": "view == super-stock-favorite",
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/",
           "group": "1_move@2"
         },
         {
           "command": "super-stock-favorite.item.moveDown",
-          "when": "view == super-stock-favorite",
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/",
           "group": "1_move@3"
         },
         {
           "command": "super-stock-favorite.item.moveBottom",
-          "when": "view == super-stock-favorite",
+          "when": "view == super-stock-favorite && viewItem =~ /^stock/",
           "group": "1_move@4"
+        },
+        {
+          "command": "super-stock-favorite.category.rename",
+          "when": "view == super-stock-favorite && viewItem == categoryCustom",
+          "group": "3_cat@1"
+        },
+        {
+          "command": "super-stock-favorite.category.delete",
+          "when": "view == super-stock-favorite && viewItem == categoryCustom",
+          "group": "3_cat@2"
         }
       ]
     }
