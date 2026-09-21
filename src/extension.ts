@@ -53,6 +53,10 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand('super-stock-favorite.item.setHighWarn', (stock)=>{nodeFavoriteStockProvider.setHighWarn(stock);}),
     commands.registerCommand('super-stock-favorite.item.setLowWarn', (stock)=>{nodeFavoriteStockProvider.setLowWarn(stock);}),
     commands.registerCommand('super-stock-favorite.item.remove', (stock)=>{nodeFavoriteStockProvider.remove(stock);}),
+    commands.registerCommand('super-stock-favorite.item.moveTop', (stock)=>{nodeFavoriteStockProvider.move(stock, 'top');}),
+    commands.registerCommand('super-stock-favorite.item.moveUp', (stock)=>{nodeFavoriteStockProvider.move(stock, 'up');}),
+    commands.registerCommand('super-stock-favorite.item.moveDown', (stock)=>{nodeFavoriteStockProvider.move(stock, 'down');}),
+    commands.registerCommand('super-stock-favorite.item.moveBottom', (stock)=>{nodeFavoriteStockProvider.move(stock, 'bottom');}),
   ); // subscriptions
 }
 

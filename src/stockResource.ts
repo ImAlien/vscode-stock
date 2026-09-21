@@ -31,13 +31,50 @@ export class StockResource {
     config.update('super-stock.favorite', favoriteConfig, true);
   }
 
-  async getFavorites(order: number): Promise<Array<Stock>> {
-    const config = workspace.getConfiguration().get('super-stock.favorite',{});
-    const result = await sinaApi(config);
-    if(order !== 0){
+  /**
+   * 调整自选股票在列表中的顺序
+   * 顺序单独存在 super-stock.order 数组中(顺序敏感), 避免 VS Code 将仅重排键的对象视为“未变化”而跳过写入
+   * @param code 目标股票代码
+   * @param action 'top' 置顶 | 'bottom' 置底 | 'up' 上移 | 'down' 下移
+   */
+  moveConfig(code: string, action: 'top' | 'bottom' | 'up' | 'down') {
+    const config = workspace.getConfiguration();
+    const favoriteConfig: StockConfig = Object.assign({}, config.get('super-stock.favorite', {}));
+    const favKeys = Object.keys(favoriteConfig);
+    // 以已有顺序为基础, 剔除已删除的股票, 并将未纳入顺序的自选股追加到末尾(保持其自然顺序)
+    const order = (config.get('super-stock.order', []) as string[]).filter(c => favKeys.indexOf(c) !== -1);
+    favKeys.forEach(k => { if (order.indexOf(k) === -1) { order.push(k); } });
+    const idx = order.indexOf(code);
+    if (idx === -1) { return Promise.resolve(); }
+    order.splice(idx, 1);
+    let newIdx = idx;
+    switch (action) {
+      case 'top': newIdx = 0; break;
+      case 'bottom': newIdx = order.length; break;
+      case 'up': newIdx = Math.max(0, idx - 1); break;
+      case 'down': newIdx = Math.min(order.length, idx + 1); break;
+    }
+    order.splice(newIdx, 0, code);
+    return config.update('super-stock.order', order, true);
+  }
+
+  async getFavorites(sortMode: number): Promise<Array<Stock>> {
+    const configuration = workspace.getConfiguration();
+    const favorite = configuration.get('super-stock.favorite', {});
+    const result = await sinaApi(favorite);
+    if (sortMode !== 0) {
       return result.sort(({info:{changeRate:a=0 }}, {info:{changeRate: b=0}})=>{
-        return (+a >= +b) ? order * 1: order * -1;
+        return (+a >= +b) ? sortMode * 1: sortMode * -1;
         });
+    }
+    // 自然顺序模式: 按用户自定义顺序排列, 未入 order 的代码保持自然顺序排在后面
+    const customOrder = configuration.get('super-stock.order', []) as string[];
+    if (customOrder.length) {
+      result.sort((a, b) => {
+        const ia = customOrder.indexOf(a.info.code);
+        const ib = customOrder.indexOf(b.info.code);
+        return (ia === -1 ? Number.MAX_SAFE_INTEGER : ia) - (ib === -1 ? Number.MAX_SAFE_INTEGER : ib);
+      });
     }
     return result;
   }

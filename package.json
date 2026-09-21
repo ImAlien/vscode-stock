@@ -28,6 +28,10 @@
     "onCommand:super-stock-favorite.item.setHighWarn",
     "onCommand:super-stock-favorite.item.setLowWarn",
     "onCommand:super-stock-favorite.item.remove",
+    "onCommand:super-stock-favorite.item.moveTop",
+    "onCommand:super-stock-favorite.item.moveUp",
+    "onCommand:super-stock-favorite.item.moveDown",
+    "onCommand:super-stock-favorite.item.moveBottom",
     "onView:super-stock-favorite"
   ],
   "main": "./out/extension.js",
@@ -59,6 +63,11 @@
           "type": "array",
           "default": ["🍾️", "🍜"],
           "description": "stock opsition gain and loss emoji in the front"
+        },
+        "super-stock.order": {
+          "type": "array",
+          "default": [],
+          "description": "custom display order of favorite symbols (array of symbol codes), managed by the move-top/bottom/up/down actions"
         }
       }
     },
@@ -108,6 +117,22 @@
       {
         "command": "super-stock-favorite.item.remove",
         "title": "删除该股票"
+      },
+      {
+        "command": "super-stock-favorite.item.moveTop",
+        "title": "置顶"
+      },
+      {
+        "command": "super-stock-favorite.item.moveUp",
+        "title": "上移"
+      },
+      {
+        "command": "super-stock-favorite.item.moveDown",
+        "title": "下移"
+      },
+      {
+        "command": "super-stock-favorite.item.moveBottom",
+        "title": "置底"
       }
     ],
     "menus": {
@@ -145,6 +170,26 @@
         {
           "command": "super-stock-favorite.item.remove",
           "when": "view == super-stock-favorite"
+        },
+        {
+          "command": "super-stock-favorite.item.moveTop",
+          "when": "view == super-stock-favorite",
+          "group": "1_move@1"
+        },
+        {
+          "command": "super-stock-favorite.item.moveUp",
+          "when": "view == super-stock-favorite",
+          "group": "1_move@2"
+        },
+        {
+          "command": "super-stock-favorite.item.moveDown",
+          "when": "view == super-stock-favorite",
+          "group": "1_move@3"
+        },
+        {
+          "command": "super-stock-favorite.item.moveBottom",
+          "when": "view == super-stock-favorite",
+          "group": "1_move@4"
         }
       ]
     }

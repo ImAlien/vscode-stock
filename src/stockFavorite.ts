@@ -157,4 +157,10 @@ export class StockProvider implements TreeDataProvider<Stock>{
     this.resource.removeConfig(info.code);
     this._onDidChangeTreeData.fire();
   }
+
+  async move(stock: {info: StockInfo}, action: 'top' | 'bottom' | 'up' | 'down'){
+    this.order = 0; // 重置为自然顺序, 否则按涨跌幅排序时看不到手动调整效果
+    await this.resource.moveConfig(stock.info.code, action); // 先等写入完成, 再刷新, 避免读到旧顺序
+    this._onDidChangeTreeData.fire();
+  }
 }
