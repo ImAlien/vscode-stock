@@ -1,14 +1,23 @@
 {
-  "name": "super-stock",
+  "name": "stock-viewer",
+  "displayName": "Stock Viewer",
   "version": "1.0.20",
   "description": "A股｜港股｜美股｜其他 实时查看行情, 高低价报警提示等内容",
   "author": "yujintang <shanquan54@gmail.com>",
+  "contributors": [
+    "ImAlien"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yujintang/vscode-stock.git"
+    "url": "https://github.com/ImAlien/vscode-stock.git"
   },
   "license": "MIT",
-  "publisher": "yujintang",
+  "icon": "media/icon.png",
+  "publisher": "ImAlien",
+  "homepage": "https://github.com/ImAlien/vscode-stock#readme",
+  "bugs": {
+    "url": "https://github.com/ImAlien/vscode-stock/issues"
+  },
   "engines": {
     "vscode": "^1.41.0"
   },
